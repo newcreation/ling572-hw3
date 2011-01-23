@@ -104,8 +104,22 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
 
 def classify(instances, classLogProbs, featureLogProbs):
     output = {}
-    for instance in instances:
+    for instance in instances:				
         output[instance] = []
+
+#Hey, this looks like great code to me, much cleaner and more succinct than I write.  I'm not sure why you're putting a list as the value here, so I don't want to mess up what you're doing.
+#I started writing something like this:
+#in your instance loop, split the instance if necessary, extract the features
+#loop through the classes, outside this loop initialize a variable called argmax to "" and one called prob to 0
+#loop through all possible features
+#get the p(f|c)'s from featureLogProbs, add them all up
+#if it's greater than prob, overwrrite argmax with the label of the class
+#when done, write argmax to output[instance]
+
+#thanks for working with me - you're obviously a better coder.  if you want to keep working with me after this assignment, i think i can get up to speed, but if not, i can understand.
+
+#let's talk about the multinomial model tomorrow, looks like you already have an implementation in mind by your comments. feel free to delete these when read.
+		
 
 
 
