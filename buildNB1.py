@@ -1,6 +1,7 @@
 import sys
 import math
 from operator import itemgetter, attrgetter
+from decimal import *
 
 def generate_model(train_data_filename, model_filename, prior_delta, cond_delta):
     classLabels = {}
@@ -11,7 +12,7 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
 
     train_data = open(train_data_filename, 'r')
     for line in train_data:
-        lineArray = line.split(' ')
+        lineArray = line.split()
         instanceName = lineArray[0]
         label = lineArray[1]
     
@@ -51,9 +52,10 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     logs = {}
     biggestLog = sum(featuresInLabel.values())
     if prior_delta >= cond_delta: 
-        biggestLog += (prior_delta*2)
+        biggestLog += int(prior_delta*2)
     else:
-        biggestLog = (cond_delta*2)
+        biggestLog = int(cond_delta*2)
+    print biggestLog
     for i in range(1,biggestLog+1):
         logs[i] = math.log(i)
     
@@ -65,6 +67,7 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     for label in classLabels:
         # get label probabilities
         lc = float(len(classLabels))
+        print logs
         labelProbs[label] = (classLabels[label]['numInstances'] + prior_delta) \
         / (len(instances)+(prior_delta*lc)) 
         labelLogProbs[label] = logs[classLabels[label]['numInstances'] + \
@@ -161,18 +164,21 @@ def print_sys(output, sys_file, labels):
         for label in labels:
             sys_file.write(" " + label)
             logprob = output[instance][label]
-            prob = str(logprob)
-            sys_file.write(" " + prob)
+            prob = str(Decimal(10)**Decimal(str(logprob)))
+            sys_file.write(" " +prob)
         sys_file.write("\n")
 
 if (len(sys.argv) < 7):
     print "Not enough args."
     sys.exit(1)
 
+# The format is: build_NB1.sh training_data test_data prior_delta cond_prob_delta model_file sys_output > acc_file
+# python build_NB1.py examples/train.vectors.txt examples/test.vectors.txt 0 0.1 examples/model1 examples/sys1
+
 train_data_filename = sys.argv[1]
 test_data_filename = sys.argv[2]
-prior_delta = int(sys.argv[3])
-cond_delta = int(sys.argv[4])
+prior_delta = float(sys.argv[3])
+cond_delta = float(sys.argv[4])
 model_filename = sys.argv[5]
 sys_filename = sys.argv[6]
 
