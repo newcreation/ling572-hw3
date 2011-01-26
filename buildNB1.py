@@ -54,7 +54,7 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     if prior_delta >= cond_delta: 
         biggestLog += int(prior_delta*2)
     else:
-        biggestLog = int(cond_delta*2)
+        biggestLog += int(cond_delta*2)
     print biggestLog
     for i in range(1,biggestLog+1):
         logs[i] = math.log(i)
@@ -67,7 +67,6 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     for label in classLabels:
         # get label probabilities
         lc = float(len(classLabels))
-        print logs
         labelProbs[label] = (classLabels[label]['numInstances'] + prior_delta) \
         / (len(instances)+(prior_delta*lc)) 
         labelLogProbs[label] = logs[classLabels[label]['numInstances'] + \
