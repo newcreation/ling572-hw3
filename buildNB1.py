@@ -52,9 +52,9 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     logs = {}
     biggestLog = sum(featuresInLabel.values())
     if prior_delta >= cond_delta: 
-        biggestLog += int(prior_delta*2)
+        biggestLog += int(math.ceil(prior_delta)*len(classLabels.keys()))
     else:
-        biggestLog += int(cond_delta*2)
+        biggestLog += int(math.ceil(cond_delta)*2)
     print biggestLog
     for i in range(1,biggestLog+1):
         logs[i] = math.log(i)
