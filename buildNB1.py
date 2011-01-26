@@ -54,7 +54,7 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     # cache logs for faster calculations
     logs = {}
     biggestLog = sum(featuresInLabel.values())
-    if prior_delta >= cond_delta: 
+    if prior_delta*len(classLabels.keys) >= (cond_delta*2): 
         biggestLog += int(math.ceil(prior_delta)*len(classLabels.keys()))
     else:
         biggestLog += int(math.ceil(cond_delta)*2)
