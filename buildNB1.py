@@ -1,7 +1,10 @@
 import sys
 import math
+<<<<<<< HEAD
 from operator import itemgetter, attrgetter
 from decimal import *
+=======
+>>>>>>> 57d9084fe6b696f92bd6a91e3fa712a2a4e5285b
 
 def generate_model(train_data_filename, model_filename, prior_delta, cond_delta):
     classLabels = {}
@@ -104,7 +107,8 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
             model_file.write(feature + "\t" + label + "\t")
             model_file.write(str(featureProbs[label][feature]) + "\t")
             model_file.write(str(featureLogProbs[label][feature]) + "\n")
-    return [instances, allFeatures, labelLogProbs, featureLogProbs]
+    return [instances, allFeatures, labelLogProbs, featureLogProbs,\
+    featuresInLabel]
 
 def classify(instances, classLogProbs, featureLogProbs):
     output = {}
@@ -166,6 +170,11 @@ def print_sys(output, sys_file, labels):
             prob = str(Decimal(10)**Decimal(str(logprob)))
             sys_file.write(" " +prob)
         sys_file.write("\n")
+        
+def print_acc(output, instances, labels):
+    print "Confusion matrix for the training data:"
+    print "row is the truth, column is the system output\n"
+    return    
 
 if (len(sys.argv) < 7):
     print "Not enough args."
@@ -190,4 +199,5 @@ sys_file = open(sys_filename, 'w')
 sys_file.write("%%%%% training data:\n")
 print_sys(train_results, sys_file, data_list[2])
 
-#print train_results
+print "class_num=", len(data_list[2]), ", feat_num=", len(data_list[1])
+print_acc(train_results,data_list[0], data_list[2])
