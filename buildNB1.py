@@ -1,10 +1,7 @@
 import sys
 import math
-<<<<<<< HEAD
 from operator import itemgetter, attrgetter
 from decimal import *
-=======
->>>>>>> 57d9084fe6b696f92bd6a91e3fa712a2a4e5285b
 
 def generate_model(train_data_filename, model_filename, prior_delta, cond_delta):
     classLabels = {}
@@ -54,11 +51,10 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     # cache logs for faster calculations
     logs = {}
     biggestLog = sum(featuresInLabel.values())
-    if prior_delta*len(classLabels.keys) >= (cond_delta*2): 
+    if prior_delta*len(classLabels.keys()) >= (cond_delta*2): 
         biggestLog += int(math.ceil(prior_delta)*len(classLabels.keys()))
     else:
         biggestLog += int(math.ceil(cond_delta)*2)
-    print biggestLog
     for i in range(1,biggestLog+1):
         logs[i] = math.log(i)
     
