@@ -127,7 +127,7 @@ def classify(instances, classLogProbs, featureLogProbs, featureNegLogProbs):
             ## or just the features in the document
             ## waiting on a thread in gopost about it, for now do every
             ## feature ever seen in this class label
-            for feature in instances[instance]:
+            for feature in featureLogProbs[label]:
                 # skip the utility variables
                 if (feature == 'classLabel') or (feature == 'numInstances'):
                     continue 
