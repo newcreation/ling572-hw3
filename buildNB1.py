@@ -49,14 +49,14 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     train_data.close()
     
     # cache logs for faster calculations
-    logs = {}
-    biggestLog = sum(featuresInLabel.values())
-    if prior_delta*len(classLabels.keys()) >= (cond_delta*2): 
-        biggestLog += int(math.ceil(prior_delta)*len(classLabels.keys()))
-    else:
-        biggestLog += int(math.ceil(cond_delta)*2)
-    for i in range(1,biggestLog+1):
-        logs[i] = math.log(i)
+    # logs = {}
+    # biggestLog = sum(featuresInLabel.values())
+    # if prior_delta*len(classLabels.keys()) >= (cond_delta*2): 
+    #     biggestLog += int(math.ceil(prior_delta)*len(classLabels.keys()))
+    # else:
+    #     biggestLog += int(math.ceil(cond_delta)*2)
+    # for i in range(1,biggestLog+1):
+    #     logs[i] = math.log(i)
     
     #store probabilities
     labelProbs = {}
@@ -68,8 +68,8 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
         lc = float(len(classLabels))
         labelProbs[label] = (classLabels[label]['numInstances'] + prior_delta) \
         / (len(instances)+(prior_delta*lc)) 
-        labelLogProbs[label] = logs[classLabels[label]['numInstances'] + \
-        prior_delta] - logs[len(instances) + (prior_delta*lc)]
+        labelLogProbs[label] = math.log(classLabels[label]['numInstances'] + \
+        prior_delta) - math.log(len(instances) + (prior_delta*lc))
         # get P(f|c)
         featureProbs[label] = {}
         featureLogProbs[label] = {}
@@ -77,8 +77,8 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
             if feature in classLabels[label]:
                 featureProbs[label][feature] = (classLabels[label][feature] + \
                 cond_delta) / (featuresInLabel[label] + (cond_delta*2.0))
-                featureLogProbs[label][feature] = logs[classLabels[label][feature] \
-                + cond_delta] - logs[featuresInLabel[label] + cond_delta*2]
+                featureLogProbs[label][feature] = math.log(classLabels[label][feature] \
+                + cond_delta) - math.log(featuresInLabel[label] + cond_delta*2)
 #            else:
 #                featureProbs[label][feature] = cond_delta / (featuresInLabel[label]\
 #                + (cond_delta*2.0))
@@ -159,7 +159,8 @@ def classify(instances, classLogProbs, featureLogProbs):
 def print_sys(output, sys_file, labels):
     for instance in output:
         sys_file.write(instance + " ")
-        sys_file.write(output[instance]['winner'])
+        sys_file.write(output[instance]['winner']+ " ")
+        sys_file.write(str(output[instance]['winnerLogProb']))
         for label in labels:
             sys_file.write(" " + label)
             logprob = output[instance][label]
@@ -168,8 +169,42 @@ def print_sys(output, sys_file, labels):
         sys_file.write("\n")
         
 def print_acc(output, instances, labels):
+    print labels.keys()
+    print instances.keys()
+    print labels.keys()[0]
+    # print output
+    # print instances
     print "Confusion matrix for the training data:"
     print "row is the truth, column is the system output\n"
+    toprow = "\t\tlabel\t\t"
+    for index in range(0,len(labels)):
+        toprow+=str(index)+"\t\t"
+    toprow+="|total"
+    print toprow
+    expected = {}
+    actual = {}
+    for label in labels:
+        expected[label] = 0
+        actual[label] = 0
+
+
+    for instance in instances.keys():
+        expected[output[instance]['winner']] += 1
+    print "======expected======"
+    print expected
+
+    for index_row in range(0,len(labels.keys())): #loop for row
+        curr_row = str(index_row)+" "
+        curr_row += labels.keys()[index_row]+"\t\t"
+
+        for index_column in range(0,len(labels.keys())): #loop for column
+            curr_row += str(expected[labels.keys()[index_column]])+"\t\t"
+#but only if it's the index representing the winner
+        print curr_row
+    
+    # confusion_matrix = [][]
+    # for output in output.keys():
+    # 	    print output
     return    
 
 if (len(sys.argv) < 7):
@@ -189,6 +224,9 @@ sys_filename = sys.argv[6]
 
 data_list = generate_model(train_data_filename, model_filename, prior_delta,\
 cond_delta)
+
+# return [instances, allFeatures, labelLogProbs, featureLogProbs,\
+# featuresInLabel]
 
 train_results = classify(data_list[0], data_list[2], data_list[3])
 sys_file = open(sys_filename, 'w')
