@@ -1,6 +1,5 @@
 import sys
 import math
-from operator import itemgetter, attrgetter
 from decimal import *
 
 def generate_model(train_data_filename, model_filename, prior_delta, cond_delta):
@@ -63,6 +62,7 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
     labelLogProbs = {}
     featureProbs = {}
     featureLogProbs = {}
+    featureNegLogProbs = {} # cache these for the classify function
     for label in classLabels:
         # get label probabilities
         lc = float(len(classLabels))
@@ -73,12 +73,15 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
         # get P(f|c)
         featureProbs[label] = {}
         featureLogProbs[label] = {}
+        featureNegLogProbs[label] = {}
         for feature in classLabels[label]:
             if feature in classLabels[label]:
                 featureProbs[label][feature] = (classLabels[label][feature] + \
                 cond_delta) / (featuresInLabel[label] + (cond_delta*2.0))
                 featureLogProbs[label][feature] = math.log(classLabels[label][feature] \
                 + cond_delta) - math.log(featuresInLabel[label] + cond_delta*2)
+                featureNegLogProbs[label][feature] =\
+                math.log(1-featureProbs[label][feature])
 #            else:
 #                featureProbs[label][feature] = cond_delta / (featuresInLabel[label]\
 #                + (cond_delta*2.0))
@@ -104,9 +107,9 @@ def generate_model(train_data_filename, model_filename, prior_delta, cond_delta)
             model_file.write(str(featureProbs[label][feature]) + "\t")
             model_file.write(str(featureLogProbs[label][feature]) + "\n")
     return [instances, allFeatures, labelLogProbs, featureLogProbs,\
-    featuresInLabel]
+    featuresInLabel, featureNegLogProbs]
 
-def classify(instances, classLogProbs, featureLogProbs):
+def classify(instances, classLogProbs, featureLogProbs, featureNegLogProbs):
     output = {}
     for instance in instances:				
         output[instance] = {}
@@ -124,27 +127,29 @@ def classify(instances, classLogProbs, featureLogProbs):
             ## or just the features in the document
             ## waiting on a thread in gopost about it, for now do every
             ## feature ever seen in this class label
-            for feature in featureLogProbs[label]:
+            for feature in instances[instance]:
                 # skip the utility variables
                 if (feature == 'classLabel') or (feature == 'numInstances'):
                     continue 
 
+                prob = 0
                 # skip words we haven't seen before
-                if not (feature in featureLogProbs[label]):
-                    continue
+                if (feature in instances[instance]):
+                    prob = featureLogProbs[label][feature] -\
+                    featureNegLogProbs[label][feature]
+                else:
+                    prob = featureNegLogProbs[label][feature]
 
                 # use optimization on slide 38 of NB slides
                 # using addition and subtraction instead of multiplication
                 # and division because we are working with logs of probs
 
                 # get prob for words not found in the document 
-                featurelogprob = featureLogProbs[label][feature]
-                prob2 = 1 - featurelogprob
+                #featurelogprob = featureLogProbs[label][feature]
+                #featureneglogprob = featureNegLogProbs[label][feature]
                 # get prob for words found in the document
-                prob1 = 0 #just initializing
-                prob1 =  featurelogprob - \
-                (1 - featurelogprob)
-                classProduct += prob1 + prob2
+                #prob1 =  featurelogprob - featureneglogprob 
+                classProduct += prob
             docClassLogProb = classLogProb + classProduct
             output[instance][label] = docClassLogProb
 
@@ -156,11 +161,11 @@ def classify(instances, classLogProbs, featureLogProbs):
         output[instance]['winnerLogProb'] = maxProb
     return output
 
-def print_sys(output, sys_file, labels):
+def print_sys(output, sys_file, labels, instances):
     for instance in output:
         sys_file.write(instance + " ")
-        sys_file.write(output[instance]['winner']+ " ")
-        sys_file.write(str(output[instance]['winnerLogProb']))
+        sys_file.write(instances[instance]['classLabel']+ " ")
+        #sys_file.write(output[instance]['winner']+ " ")
         for label in labels:
             sys_file.write(" " + label)
             logprob = output[instance][label]
@@ -169,43 +174,44 @@ def print_sys(output, sys_file, labels):
         sys_file.write("\n")
         
 def print_acc(output, instances, labels):
-    print labels.keys()
-    print instances.keys()
-    print labels.keys()[0]
+    #print labels.keys()
+    #print instances.keys()
+    #print labels.keys()[0]
     # print output
     # print instances
     print "Confusion matrix for the training data:"
     print "row is the truth, column is the system output\n"
-    toprow = "\t\tlabel\t\t"
-    for index in range(0,len(labels)):
-        toprow+=str(index)+"\t\t"
-    toprow+="|total"
-    print toprow
-    expected = {}
-    actual = {}
+    toprow = "\t\t"
     for label in labels:
-        expected[label] = 0
-        actual[label] = 0
+        toprow+=label+"\t\t"
+    #toprow+="|total"
+    print toprow
 
+    cells = {}
+    numRight = 0
+    for actuallabel in labels:
+        cells[actuallabel] = {}
+        for expectedlabel in labels:
+            cells[actuallabel][expectedlabel] = 0
 
-    for instance in instances.keys():
-        expected[output[instance]['winner']] += 1
-    print "======expected======"
-    print expected
+    for instance in output:
+        cells[instances[instance]['classLabel']][output[instance]['winner']] +=1
+        if instances[instance]['classLabel'] == output[instance]['winner']:
+            numRight += 1.0
 
-    for index_row in range(0,len(labels.keys())): #loop for row
-        curr_row = str(index_row)+" "
-        curr_row += labels.keys()[index_row]+"\t\t"
+    for actuallabel in labels: #loop for row
+        #curr_row = str(index_row)+" "
+        curr_row = actuallabel + "\t\t"
 
-        for index_column in range(0,len(labels.keys())): #loop for column
-            curr_row += str(expected[labels.keys()[index_column]])+"\t\t"
+        for expectedlabel in labels: #loop for column
+            curr_row += str(cells[actuallabel][expectedlabel])+"\t\t"
 #but only if it's the index representing the winner
         print curr_row
     
     # confusion_matrix = [][]
     # for output in output.keys():
     # 	    print output
-    return    
+    return numRight/len(instances)   
 
 if (len(sys.argv) < 7):
     print "Not enough args."
@@ -228,10 +234,38 @@ cond_delta)
 # return [instances, allFeatures, labelLogProbs, featureLogProbs,\
 # featuresInLabel]
 
-train_results = classify(data_list[0], data_list[2], data_list[3])
+train_results = classify(data_list[0], data_list[2], data_list[3], data_list[5])
 sys_file = open(sys_filename, 'w')
 sys_file.write("%%%%% training data:\n")
-print_sys(train_results, sys_file, data_list[2])
+print_sys(train_results, sys_file, data_list[2], data_list[0])
 
 print "class_num=", len(data_list[2]), ", feat_num=", len(data_list[1])
-print_acc(train_results,data_list[0], data_list[2])
+train_acc = print_acc(train_results,data_list[0], data_list[2])
+print "Training accuracy =", train_acc
+print "\n\n"
+
+test_data = open(test_data_filename, 'r')
+instances = {}
+for line in test_data:
+    lineArray = line.split()
+    instanceName = lineArray[0]
+    label = lineArray[1]
+
+    instances[instanceName] = {}
+    instances[instanceName]['classLabel'] = label
+        
+    features = lineArray[2::2] # every other word in line starting with third
+    values = lineArray[3::2] # every other word in line starting with fourth
+        
+    for f, v in zip(features, values):
+        if not (f in instances[instanceName]):
+            instances[instanceName][f] = 1
+        else:
+            instances[instanceName][f] += 1
+    
+test_data.close()
+
+
+test_results = classify(instances, data_list[2], data_list[3], data_list[5])
+test_acc = print_acc(test_results,instances, data_list[2])
+print "Testing accuracy =", test_acc
